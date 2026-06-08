@@ -4,7 +4,7 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install --omit=dev
 COPY src ./src
-RUN git clone https://github.com/specmatic-demo/central-contract-repository /app/.specmatic/repos/central-contract-repository
+COPY specs ./specs
 
 ENV PRICING_HOST=0.0.0.0
 ENV PRICING_PORT=9000
