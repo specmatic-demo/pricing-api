@@ -26,7 +26,9 @@ function findFirstExistingPath(paths: Array<string | undefined>): string | null 
 
 const protoPath = findFirstExistingPath([
   process.env.PRICING_PROTO_PATH,
+  path.join(__dirname, '..', 'specs', 'pricing.proto'),
   path.join(__dirname, '..', '.specmatic', 'repos', 'central-contract-repository', 'contracts', 'services', 'pricing-service', 'rpc', 'pricing.proto'),
+  path.join(__dirname, '..', '.specmatic', 'repos', 'pricing-service', 'specs', 'pricing.proto'),
   path.join(__dirname, '..', '..', 'central-contract-repository', 'contracts', 'services', 'pricing-service', 'rpc', 'pricing.proto')
 ]);
 

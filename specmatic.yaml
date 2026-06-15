@@ -11,16 +11,16 @@ dependencies:
   services: []
 components:
   sources:
-    centralContractRepo:
-      git:
-        url: https://github.com/specmatic-demo/central-contract-repository
+    localSpecs:
+      filesystem:
+        directory: specs
   services:
     pricingService:
       description: "Pricing Service"
       definitions:
         - definition:
             source:
-              $ref: "#/components/sources/centralContractRepo"
+              $ref: "#/components/sources/localSpecs"
             specs:
               - spec:
-                  path: "contracts/services/pricing-service/rpc/pricing.proto"
+                  path: "pricing.proto"
