@@ -114,6 +114,9 @@ jobs:
             -v "$HOME/.specmatic:/root/.specmatic:ro" \
             -w /usr/src/app \
             --network=host \
+            -e GIT_CONFIG_COUNT=1 \
+            -e GIT_CONFIG_KEY_0=safe.directory \
+            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             test
       - name: Stop Pricing API
