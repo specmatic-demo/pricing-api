@@ -1,19 +1,19 @@
 {
-  "name": "pricing-service",
+  "name": "pricing-api",
   "version": "1.0.0",
   "private": true,
-  "description": "Demo pricing gRPC service",
+  "description": "Demo pricing REST service",
   "scripts": {
     "start": "tsx src/index.ts",
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
-    "@grpc/grpc-js": "^1.11.3",
-    "@grpc/proto-loader": "^0.7.13",
+    "express": "^4.21.2",
     "tsx": "^4.20.5"
   },
   "devDependencies": {
+    "@types/express": "^4.17.25",
     "@types/node": "^24.3.0",
     "typescript": "^5.9.2"
   }

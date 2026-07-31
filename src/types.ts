@@ -1,6 +1,6 @@
 export type QuotePriceRequest = {
   sku?: string;
-  quantity?: number | string;
+  quantity?: number;
   customerTier?: string;
 };
 
@@ -14,7 +14,7 @@ export type QuotePriceResponse = {
 
 export type BulkQuoteLine = {
   sku?: string;
-  quantity?: number | string;
+  quantity?: number;
 };
 
 export type BulkQuoteRequest = {

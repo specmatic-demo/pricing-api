@@ -1,0 +1,101 @@
+openapi: 3.0.3
+info:
+  title: Pricing API
+  version: 1.0.0
+  description: Pricing service API for the OpenAPI demo.
+servers:
+  - url: http://localhost:9000
+paths:
+  /quote-price:
+    post:
+      operationId: quotePrice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotePriceRequest'
+      responses:
+        '200':
+          description: Price quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotePriceResponse'
+  /bulk-quote:
+    post:
+      operationId: getBulkQuote
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BulkQuoteRequest'
+      responses:
+        '200':
+          description: Bulk price quote
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkQuoteResponse'
+components:
+  schemas:
+    QuotePriceRequest:
+      type: object
+      required: [sku, quantity, customerTier]
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        customerTier:
+          type: string
+    QuotePriceResponse:
+      type: object
+      required: [sku, quantity, unitPrice, totalPrice, currency]
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+          format: double
+        totalPrice:
+          type: number
+          format: double
+        currency:
+          type: string
+    BulkQuoteRequest:
+      type: object
+      required: [customerTier, lines]
+      properties:
+        customerTier:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuoteLine'
+    QuoteLine:
+      type: object
+      required: [sku, quantity]
+      properties:
+        sku:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+    BulkQuoteResponse:
+      type: object
+      required: [quotes, grandTotal, currency]
+      properties:
+        quotes:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuotePriceResponse'
+        grandTotal:
+          type: number
+          format: double
+        currency:
+          type: string

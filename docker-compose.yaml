@@ -1,6 +1,6 @@
 services:
   my-app:
     build: .
-    container_name: pricing-service
+    container_name: pricing-api
     restart: unless-stopped
     network_mode: host
