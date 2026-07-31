@@ -1,0 +1,124 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  detect-spec-changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      specs_changed: ${{ steps.changes.outputs.specs }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect changes in specs folder
+        uses: dorny/paths-filter@v3
+        id: changes
+        with:
+          filters: |
+            specs:
+              - 'specs/**'
+
+  central-contract-repo-report:
+    needs: detect-spec-changes
+    if: needs.detect-spec-changes.outputs.specs_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save Specmatic license
+        run: |
+          mkdir -p ~/.specmatic
+          echo "${{ secrets.PROVIDER_REPOS_DEMO_LICENSE_KEY }}" > ~/.specmatic/specmatic-license.txt
+      - name: Run Specmatic Linter
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            specmatic/enterprise \
+            lint 'specs/*.yaml'
+      - name: Validate examples
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            specmatic/enterprise \
+            examples validate --specs-dir=specs
+      - name: Run backward compatibility check
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            specmatic/enterprise \
+            backward-compatibility-check --target-path=specs --base-branch=HEAD^
+      - name: Upload backward compatibility report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pricing-api-backward-compatibility-report
+          path: build/reports/specmatic/backward_compatibility/ctrf/*.json
+          if-no-files-found: ignore
+      - name: Generate central contract repo report
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            --network=host \
+            specmatic/enterprise \
+            central-contract-repo-report
+      - name: Publish to Insights
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            --network=host \
+            specmatic/enterprise \
+            send-report \
+            --branch-name=${{ github.ref_name }} \
+            --repo-name='${{ github.event.repository.name }}' \
+            --repo-id='${{ github.event.repository.id }}' \
+            --repo-url='${{ github.event.repository.html_url }}'
+
+  contract-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save Specmatic license
+        run: |
+          mkdir -p ~/.specmatic
+          echo "${{ secrets.PROVIDER_REPOS_DEMO_LICENSE_KEY }}" > ~/.specmatic/specmatic-license.txt
+      - name: Start Pricing API
+        run: docker compose up -d --build
+      - name: Run contract tests
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            --network=host \
+            specmatic/enterprise \
+            test
+      - name: Stop Pricing API
+        if: always()
+        run: docker compose down
+      - name: Publish contract test report
+        if: always()
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/usr/src/app" \
+            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -w /usr/src/app \
+            --network=host \
+            specmatic/enterprise \
+            send-report \
+            --branch-name=${{ github.ref_name }} \
+            --repo-name='${{ github.event.repository.name }}' \
+            --repo-id='${{ github.event.repository.id }}' \
+            --repo-url='${{ github.event.repository.html_url }}'
