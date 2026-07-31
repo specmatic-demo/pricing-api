@@ -3,62 +3,82 @@ info:
   title: Pricing API
   version: 1.0.0
   description: Pricing service API for the OpenAPI demo.
-servers:
-  - url: http://localhost:9000
 paths:
   /quote-price:
     post:
       operationId: quotePrice
+      summary: Calculate price for one SKU
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/QuotePriceRequest'
+              $ref: '#/components/schemas/quotePriceRequest'
       responses:
         '200':
           description: Price quote
+          headers:
+            X-RateLimit-Limit:
+              schema: { type: integer, minimum: 1, maximum: 1000000 }
+            X-RateLimit-Remaining:
+              schema: { type: integer, minimum: 0, maximum: 1000000 }
+            Content-Language:
+              schema: { type: string, enum: [en-US] }
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/QuotePriceResponse'
+                $ref: '#/components/schemas/quotePriceResponse'
   /bulk-quote:
     post:
       operationId: getBulkQuote
+      summary: Calculate prices for multiple SKUs
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/BulkQuoteRequest'
+              $ref: '#/components/schemas/bulkQuoteRequest'
       responses:
         '200':
           description: Bulk price quote
+          headers:
+            X-RateLimit-Limit:
+              schema: { type: integer, minimum: 1, maximum: 1000000 }
+            X-RateLimit-Remaining:
+              schema: { type: integer, minimum: 0, maximum: 1000000 }
+            Content-Language:
+              schema: { type: string, enum: [en-US] }
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BulkQuoteResponse'
+                $ref: '#/components/schemas/bulkQuoteResponse'
 components:
   schemas:
-    QuotePriceRequest:
+    quotePriceRequest:
       type: object
       required: [sku, quantity, customerTier]
       properties:
         sku:
           type: string
+          maxLength: 100
         quantity:
           type: integer
           minimum: 1
+          maximum: 1000
         customerTier:
           type: string
-    QuotePriceResponse:
+          maxLength: 50
+    quotePriceResponse:
       type: object
       required: [sku, quantity, unitPrice, totalPrice, currency]
       properties:
         sku:
           type: string
+          maxLength: 100
         quantity:
           type: integer
+          minimum: 1
+          maximum: 1000
         unitPrice:
           type: number
           format: double
@@ -67,35 +87,42 @@ components:
           format: double
         currency:
           type: string
-    BulkQuoteRequest:
+          enum: [USD]
+    bulkQuoteRequest:
       type: object
       required: [customerTier, lines]
       properties:
         customerTier:
           type: string
+          maxLength: 50
         lines:
           type: array
+          maxItems: 100
           items:
-            $ref: '#/components/schemas/QuoteLine'
-    QuoteLine:
+            $ref: '#/components/schemas/quoteLine'
+    quoteLine:
       type: object
       required: [sku, quantity]
       properties:
         sku:
           type: string
+          maxLength: 100
         quantity:
           type: integer
           minimum: 1
-    BulkQuoteResponse:
+          maximum: 1000
+    bulkQuoteResponse:
       type: object
       required: [quotes, grandTotal, currency]
       properties:
         quotes:
           type: array
+          maxItems: 100
           items:
-            $ref: '#/components/schemas/QuotePriceResponse'
+            $ref: '#/components/schemas/quotePriceResponse'
         grandTotal:
           type: number
           format: double
         currency:
           type: string
+          enum: [USD]
