@@ -80,17 +80,6 @@ jobs:
             -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             central-contract-repo-report
-      - name: Verify Git repository inside container
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/usr/src/app" \
-            -w /usr/src/app \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
-            --entrypoint /bin/sh \
-            specmatic/enterprise \
-            -c 'pwd; ls -la .git; git rev-parse --is-inside-work-tree'
       - name: Publish to Insights
         run: |
           docker run --rm \
@@ -129,14 +118,6 @@ jobs:
             test
       - name: Stop Pricing API
         run: docker compose down
-      - name: Verify Git repository inside container
-        run: |
-          docker run --rm \
-            -v "${{ github.workspace }}:/usr/src/app" \
-            -w /usr/src/app \
-            --entrypoint /bin/sh \
-            specmatic/enterprise \
-            -c 'pwd; ls -la .git; git rev-parse --is-inside-work-tree'
       - name: Publish contract test report
         run: |
           docker run --rm \
