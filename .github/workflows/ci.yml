@@ -14,9 +14,10 @@ jobs:
     outputs:
       specs_changed: ${{ steps.changes.outputs.specs }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Detect changes in specs folder
-        uses: dorny/paths-filter@v3
+        if: github.event_name == 'push'
+        uses: dorny/paths-filter@v4
         id: changes
         with:
           filters: |
@@ -30,7 +31,7 @@ jobs:
       needs.detect-spec-changes.outputs.specs_changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
       - name: Save Specmatic license
@@ -40,33 +41,36 @@ jobs:
       - name: Run Specmatic Linter
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             specmatic/enterprise \
             lint 'specs/*.yaml'
       - name: Validate examples
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             specmatic/enterprise \
             examples validate --specs-dir=specs
       - name: Run backward compatibility check
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             backward-compatibility-check --target-path=specs --base-branch=HEAD^
       - name: Upload backward compatibility report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pricing-api-backward-compatibility-report
           path: build/reports/specmatic/backward_compatibility/ctrf/*.json
@@ -74,25 +78,23 @@ jobs:
       - name: Generate central contract repo report
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             --network=host \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             central-contract-repo-report
       - name: Publish to Insights
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             --network=host \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             send-report \
             --branch-name=${{ github.ref_name }} \
@@ -103,23 +105,35 @@ jobs:
   contract-tests:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Save Specmatic license
         run: |
           mkdir -p ~/.specmatic
           echo "${{ secrets.PROVIDER_REPOS_DEMO_LICENSE_KEY }}" > ~/.specmatic/specmatic-license.txt
       - name: Start Pricing API
-        run: docker compose up -d --build
+        run: |
+          docker compose up -d --build
+
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:9000/health >/dev/null; then
+              echo "Pricing API is ready"
+              exit 0
+            fi
+            sleep 2
+          done
+
+          docker compose ps
+          docker compose logs
+          exit 1
       - name: Run contract tests
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             --network=host \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             test
       - name: Stop Pricing API
@@ -127,13 +141,12 @@ jobs:
       - name: Publish contract test report
         run: |
           docker run --rm \
+            --user "$(id -u):$(id -g)" \
+            -e SPECMATIC_LICENSE_PATH=/tmp/specmatic-license.txt \
             -v "${{ github.workspace }}:/usr/src/app" \
-            -v "$HOME/.specmatic:/root/.specmatic:ro" \
+            -v "$HOME/.specmatic/specmatic-license.txt:/tmp/specmatic-license.txt:ro" \
             -w /usr/src/app \
             --network=host \
-            -e GIT_CONFIG_COUNT=1 \
-            -e GIT_CONFIG_KEY_0=safe.directory \
-            -e GIT_CONFIG_VALUE_0=/usr/src/app \
             specmatic/enterprise \
             send-report \
             --branch-name=${{ github.ref_name }} \
