@@ -1,7 +1,7 @@
 version: 3
 systemUnderTest:
   service:
-    $ref: "#/components/services/pricingService"
+    $ref: "#/components/services/pricingApi"
     runOptions:
       openapi:
         host: localhost
@@ -14,8 +14,8 @@ components:
       filesystem:
         directory: specs
   services:
-    pricingService:
-      description: "Pricing Service"
+    pricingApi:
+      description: "Pricing API"
       definitions:
         - definition:
             source:
